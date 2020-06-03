@@ -1,0 +1,205 @@
+package ServerSide;
+
+
+import Commands.Command;
+
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.logging.Logger;
+
+public class ServerConnection {
+    private ObjectInputStream objectInputStream;
+    private ObjectOutputStream objectOutputStream;
+    private Boolean isworking = true;
+    private CollectionManager collectionManager=new CollectionManager();
+    private static Logger logger=Logger.getLogger(ServerConnection.class.getName());
+
+
+
+
+            public void work() {
+                try {
+                    ServerSocket ss = new ServerSocket(7777);
+                    logger.info("ServerSocket awaiting connections...");
+                    try {
+                        Socket socket = ss.accept();
+                        logger.info("Connection from " + socket + "!");
+                        OutputStream out = socket.getOutputStream();
+                while (!(socket.getInputStream().available() > 0) && socket != null&& isworking) {
+
+                    Command comin = new Command();
+                    while (comin.getName() == null&& isworking) {
+                        try {
+                            this.read(socket, comin);
+
+                        } catch (EOFException e) {
+                            logger.info("Cannot reading");
+                            isworking=false;
+                        }
+                    }
+
+                    if (comin.getName() != null) {
+
+                        switch (comin.getName()) {
+                            case ("first_exit"):
+                                logger.info("Server shuts down with client");
+                                Command command = new Command("0");
+                                command.setAnswer("The server did nothing and says goodbye to you");
+                                this.send(socket, command, out);
+                                isworking = false;
+                                break;
+                            case ("exit"):
+                                logger.info("The server executes the command: info");
+                                Command command16 = new Command();
+                                collectionManager.save(command16);
+                                this.send(socket, command16, out);
+                                isworking = false;
+                                break;
+
+                            case ("file_with_collection"):
+                                logger.info("Server validates collection file");
+                                Command command17 = new Command();
+                                collectionManager.read_file(comin.getFile_name(), command17);
+                                System.out.println(command17.getAnswer());
+                                this.send(socket, command17, out);
+                                break;
+                            case ("info"):
+                                logger.info("The server executes the command: info");
+                                Command command0 = new Command();
+                                command0.setAnswer(collectionManager.toString());
+                                this.send(socket, command0, out);
+                                break;
+                            case ("clear"):
+                                logger.info("The server executes the command: clear");
+                                Command command8 = new Command();
+                                collectionManager.clear(command8);
+                                this.send(socket, command8, out);
+                                break;
+
+                            case ("remove_greater"):
+                                logger.info("The server executes the command: remove_greater");
+                                Command command1 = new Command();
+                                collectionManager.remove_greater(comin.getVehicle(), command1);
+                                this.send(socket, command1, out);
+                                break;
+                            case ("insert"):
+                                logger.info("The server executes the command: insert");
+                                Command command2 = new Command();
+                                collectionManager.insert(comin.getKey(), comin.getVehicle(), command2);
+                                this.send(socket, command2, out);
+                                break;
+                            case ("show"):
+                                logger.info("The server executes the command: show");
+                                Command command10 = new Command();
+                                collectionManager.show(command10);
+                                this.send(socket, command10, out);
+                                break;
+                            case ("remove_key"):
+                                logger.info("The server executes the command: remove_key");
+                                Command command3 = new Command();
+                                collectionManager.remove_key(comin.getKey(), command3);
+                                this.send(socket, command3, out);
+                                break;
+                            case ("replace_if_greater"):
+                                logger.info("The server executes the command: replace_if_greater");
+                                Command command4 = new Command();
+                                collectionManager.replace_if_greater(comin.getKey(), comin.getVehicle(), command4);
+                                this.send(socket, command4, out);
+                                break;
+                            case ("remove_any_by_number_of_wheels"):
+                                logger.info("The server executes the command: remove_any_by_number_of_wheels");
+                                Command command5 = new Command();
+                                collectionManager.remove_any_by_number_of_wheels(comin.getNumber(), command5);
+                                this.send(socket, command5, out);
+                                break;
+                            case ("count_less_than_engine_power"):
+                                logger.info("The server executes the command: count_less_than_engine_power");
+                                Command command6 = new Command();
+                                collectionManager.count_less_than_engine_power(comin.getPower(), command6);
+                                this.send(socket, command6, out);
+                                break;
+                            case ("update"):
+                                logger.info("The server executes the command: update");
+                                Command command7 = new Command();
+                                collectionManager.update(comin.getID(), comin.getVehicle(), command7);
+                                this.send(socket, command7, out);
+                                break;
+
+                            default:
+                                logger.info("This is an unknown command.");
+                                break;
+
+                        }
+                    }
+                    else {
+                        socket.close();
+                    }
+                }
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }  catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public void read(Socket socket, Command command) throws  IOException, ClassNotFoundException {
+
+            try{
+
+            logger.info("Server reading command from client");
+            InputStream inputStream = socket.getInputStream();
+            byte[] bytes = new byte[163840];
+            inputStream.read(bytes);
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+            ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+            Object object = objectInputStream.readObject();
+            Command com = (Command) object;
+            command.setID(com.getID());
+            command.setName(com.getName());
+            command.setKey(com.getKey());
+            command.setVehicle(com.getVehicle());
+            command.setNumber(com.getNumber());
+            command.setPower(com.getPower());
+            command.setFile_name(com.getFile_name());
+            byteArrayInputStream.close();
+            objectInputStream.close();
+            }catch (SocketException e){
+                e.printStackTrace();
+                isworking=false;
+            }
+
+
+    }
+
+    public void send(Socket socket,Command command,OutputStream out) throws IOException {
+        try {
+            byte[] bytes = new byte[163840];
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+            objectOutputStream.writeObject(command);
+            objectOutputStream.flush();
+            bytes = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.flush();
+            out.write(bytes);
+            objectOutputStream.close();
+            byteArrayOutputStream.close();
+            logger.info("Server send a message");
+        } catch (IOException e){
+            logger.info("MISTAKE ! Server cannot send a message");
+            e.printStackTrace();
+        }
+    }
+
+}
+
+
+
