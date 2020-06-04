@@ -7,6 +7,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Scanner;
 import java.util.logging.Logger;
 
 public class ServerConnection {
@@ -18,10 +19,12 @@ public class ServerConnection {
 
 
 
-
             public void work() {
+                System.out.println("Enter port(The client will come to port 7777):");
+                Scanner scanner=new Scanner(System.in);
+                Integer port = port_check(scanner.nextLine(), scanner);
                 try {
-                    ServerSocket ss = new ServerSocket(7777);
+                    ServerSocket ss = new ServerSocket(port);
                     logger.info("ServerSocket awaiting connections...");
                     try {
                         Socket socket = ss.accept();
@@ -146,7 +149,8 @@ public class ServerConnection {
                 e.printStackTrace();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+           System.out.println("Address already in use");
+          work();
         }
     }
 
@@ -197,6 +201,23 @@ public class ServerConnection {
             logger.info("MISTAKE ! Server cannot send a message");
             e.printStackTrace();
         }
+    }
+    public Integer port_check(String string, Scanner scanner) {
+        Integer port = null;
+        try {
+            port = Integer.valueOf(string);
+        } catch (NumberFormatException E) {
+            System.out.println("Input arg of port is incorrect.It must be Integer value. Try again");
+            while (port == null) {
+                System.out.println("Port:");
+                try {
+                    port = Integer.valueOf(scanner.next());
+                } catch (NumberFormatException e) {
+                    System.out.println("Input arg of port is incorrect. Try again");
+                }
+            }
+        }
+        return port;
     }
 
 }
